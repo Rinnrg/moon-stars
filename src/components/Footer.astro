@@ -1,0 +1,15 @@
+---
+import { SOCIAL_LINKS } from '@/consts'
+import SocialIcons from './SocialIcons.astro'
+---
+
+<footer class="py-4">
+  <div
+    class="mx-auto flex max-w-3xl flex-col items-center justify-center gap-y-2 px-4 sm:flex-row sm:justify-between"
+  >
+    <span class="text-muted-foreground text-sm">
+      &copy; {new Date().getFullYear()} enscribe
+    </span>
+    <SocialIcons links={SOCIAL_LINKS} />
+  </div>
+</footer>

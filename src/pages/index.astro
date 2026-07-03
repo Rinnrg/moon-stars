@@ -1,0 +1,265 @@
+---
+import DiscordPresence from '@/components/bento/DiscordPresence.tsx'
+import GithubCalendar from '@/components/bento/GithubCalendar.tsx'
+import SpotifyPresence from '@/components/bento/SpotifyPresence.tsx'
+import WakatimeGraph from '@/components/bento/WakatimeGraph.tsx'
+import Link from '@/components/Link.astro'
+import PageHead from '@/components/PageHead.astro'
+import { SOCIAL_LINKS } from '@/consts'
+import Layout from '@/layouts/Layout.astro'
+import { getAllPosts } from '@/lib/data-utils'
+import { cn } from '@/lib/utils'
+import { Icon } from 'astro-icon/components'
+
+const latestPost = await getAllPosts().then((posts) => posts.at(0))
+---
+
+<Layout class="px-2">
+  <PageHead slot="head" title="Home" />
+  <section
+    class={cn(
+      'mx-auto grid min-w-xs sm:has-[[data-trigger]:hover]:*:first:[&_[data-overlay]]:opacity-0',
+      'max-w-sm grid-cols-1 [grid-template-areas:"a""b""e""d""g""f""j""i""k"]',
+      'sm:max-w-2xl sm:grid-cols-2 sm:[grid-template-areas:"a_a""b_d""e_e""j_g""h_i""h_c""k_c""f_f"]',
+      'lg:max-w-5xl lg:grid-cols-3 lg:[grid-template-areas:"a_a_b""d_e_e""h_f_f""h_i_g""k_c_j"]',
+      'xl:max-w-7xl xl:grid-cols-4 xl:[grid-template-areas:"a_a_b_c""d_e_e_c""h_f_f_g""h_i_j_k"]',
+    )}
+  >
+    <div class="aspect-[3/4] p-2 [grid-area:a] sm:aspect-[2/1] xl:aspect-[2/1]">
+      <div class="bg-muted size-full border">
+        <div
+          class="size-full bg-[url('/static/bento/about-background-square.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/static/bento/about-background.png')]"
+        >
+          <div
+            data-overlay
+            class="size-full bg-[url('/static/bento/about-foreground-square.png')] bg-cover bg-center bg-no-repeat transition-opacity duration-200 sm:bg-[url('/static/bento/about-foreground.png')]"
+          >
+            <div class="flex p-4">
+              <div class="hidden w-1/3 sm:block"></div>
+              <div class="space-y-4 sm:w-2/3">
+                <p
+                  class="text-foreground/80 bg-background block border p-3 text-sm text-pretty"
+                >
+                  Selamat datang di Moon & Stars, di mana kamu akan mengenal beberapa hal tentang Moon serta Star.
+                </p>
+                <p
+                  class="text-foreground/80 bg-background block border p-3 text-sm text-pretty"
+                >
+                   Di sini adalah tempat kita mengabadikan <Link
+                    href="/journey"
+                    class="text-foreground decoration-muted-foreground hover:decoration-foreground font-medium break-words underline underline-offset-[3px] transition-colors"
+                    >perjalanan cerita kita</Link
+                  >, membagikan <Link
+                    href="/gallery"
+                    class="text-foreground decoration-muted-foreground hover:decoration-foreground font-medium break-words underline underline-offset-[3px] transition-colors"
+                    >momen-momen manis</Link
+                  >, dan menyimpan memori berharga. Mari lihat lebih banyak kenangan kita <Link
+                    href="/kenangan"
+                    class="text-foreground decoration-muted-foreground hover:decoration-foreground font-medium break-words underline underline-offset-[3px] transition-colors"
+                    >di sini</Link
+                  >!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="aspect-square p-2 [grid-area:b]">
+      <div data-trigger class="bg-muted size-full border">
+        <div
+          class="size-full bg-[url('/static/bento/details-background.png')] bg-cover bg-center bg-no-repeat"
+        >
+          <div
+            class="relative size-full bg-[url('/static/bento/details-foreground.png')] bg-cover bg-center bg-no-repeat transition-opacity duration-200 sm:opacity-0 sm:hover:opacity-100"
+          >
+            <p
+              class="text-foreground/80 bg-background absolute top-1/2 left-0 mr-24 ml-4 -translate-y-1/2 border p-3 text-xs text-pretty"
+            >
+              This blog contains educational resources pertaining to CTFs and
+              cybersecurity. I hope you enjoy reading!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="hidden p-2 [grid-area:c] sm:block sm:aspect-[1/2] lg:aspect-square xl:aspect-[1/2]"
+    >
+      <div class="bg-muted size-full border">
+        <div
+          class="size-full bg-[url('/static/bento/image-1.png')] bg-cover bg-center bg-no-repeat"
+        >
+        </div>
+      </div>
+    </div>
+    <div class="aspect-auto p-2 [grid-area:d] sm:aspect-square">
+      <div class="bg-muted size-full border">
+        <DiscordPresence client:load />
+      </div>
+    </div>
+    <div class="aspect-[6/5] p-2 [grid-area:e] sm:aspect-[2/1]">
+      <div data-trigger class="bg-muted size-full border">
+        <div
+          class="group/blog relative size-full bg-[url('/static/bento/blog-background-square.png')] bg-cover bg-center bg-no-repeat sm:bg-[url('/static/bento/blog-background.png')]"
+        >
+          <div
+            class="absolute size-full bg-[url('/static/bento/blog-foreground-square.png')] bg-cover bg-center bg-no-repeat transition-opacity duration-200 sm:bg-[url('/static/bento/blog-foreground.png')] sm:opacity-0 sm:group-hover/blog:opacity-100"
+          >
+            <p
+              class="text-foreground/80 bg-background absolute bottom-4 left-16 border p-2 text-xs text-pretty sm:top-[42.5%] sm:right-4 sm:bottom-[inherit] sm:left-[inherit] sm:-translate-y-1/2"
+            >
+              Read my latest<br /> blog post!
+            </p>
+          </div>
+          <div class="p-3 sm:size-full sm:p-6">
+            {
+              latestPost && (
+                <Link href={`/blog/${latestPost.id}`} class="flex h-full">
+                  <img
+                    src={latestPost.data.imageWithText?.src ?? '#'}
+                    alt={`Featured image for the latest post: ${latestPost.data.title}`}
+                    class="h-full border"
+                  />
+                </Link>
+              )
+            }
+          </div>
+          {
+            latestPost && (
+              <Link
+                href={`/blog/${latestPost.id}`}
+                title={`Read latest blog post: ${latestPost.data.title}`}
+                aria-label={`Read latest blog post: ${latestPost.data.title}`}
+                class="bg-border/50 text-primary ring-ring group/blog-link absolute end-0 bottom-0 m-3 rounded-full p-3 transition-[box-shadow] duration-300 hover:ring-2 focus-visible:ring-2"
+              >
+                <Icon
+                  name="lucide:move-up-right"
+                  class="transition-transform duration-300 group-hover/blog-link:rotate-12"
+                  size={16}
+                />
+              </Link>
+            )
+          }
+        </div>
+      </div>
+    </div>
+    <div class="aspect-square p-2 [grid-area:f] sm:aspect-[2/1]">
+      <div data-trigger class="group/calendar bg-muted relative size-full border">
+        <div
+          class="pointer-events-none absolute size-full bg-[url('/static/bento/calendar-background.png')] bg-cover bg-left bg-no-repeat"
+        >
+          <div
+            class="pointer-events-none absolute size-full bg-[url('/static/bento/calendar-foreground.png')] bg-cover bg-left bg-no-repeat transition-opacity duration-200 sm:opacity-0 sm:group-hover/calendar:opacity-100"
+          >
+            <p
+              class="text-foreground/80 bg-background absolute top-[37.5%] left-4 -translate-y-1/2 border p-2 text-xs text-pretty"
+            >
+              Ini adalah awal<br /> moon &amp; stars<br /> menyatakan cinta<br /> sampai sekarang
+            </p>
+          </div>
+        </div>
+        <div class="flex size-full items-center justify-center p-8">
+          <GithubCalendar username="jktrn" client:load />
+        </div>
+      </div>
+    </div>
+    <div class="aspect-square p-2 [grid-area:g]">
+      <div data-trigger class="bg-muted size-full border">
+        <div
+          class="group/spotify relative size-full bg-[url('/static/bento/spotify-background.png')] bg-cover bg-center bg-no-repeat"
+        >
+          <div
+            class="absolute size-full bg-[url('/static/bento/spotify-foreground.png')] bg-cover bg-center bg-no-repeat transition-opacity duration-200 sm:opacity-0 sm:group-hover/spotify:opacity-100"
+          >
+          </div>
+          <div class="flex size-full items-center justify-center">
+            <SpotifyPresence client:load />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hidden p-2 [grid-area:h] sm:block sm:aspect-[1/2]">
+      <div class="bg-muted size-full border">
+        <div
+          class="size-full bg-[url('/static/bento/image-2.png')] bg-cover bg-center bg-no-repeat"
+        >
+        </div>
+      </div>
+    </div>
+    <div class="aspect-square p-2 [grid-area:i]">
+      <div class="bg-muted size-full border">
+        <div
+          class="group/github relative flex size-full items-center justify-center bg-[url('/static/bento/github-background.png')] bg-cover bg-center bg-no-repeat"
+        >
+          <div
+            class="size-full bg-[url('/static/bento/github-foreground.png')] bg-cover bg-center bg-no-repeat transition-opacity duration-200 sm:opacity-0 sm:group-hover/github:opacity-100"
+            aria-hidden="true"
+          >
+          </div>
+          <Icon
+            name="mdi:github"
+            class="text-primary absolute size-1/2 sm:size-24"
+            aria-hidden="true"
+          />
+          <Link
+            href={SOCIAL_LINKS.find((link) => link.label === 'GitHub')?.href ||
+              '#'}
+            title="Visit my GitHub profile"
+            aria-label="Visit my GitHub profile"
+            external
+            class="bg-border/50 text-primary ring-ring group/github-link absolute end-0 bottom-0 m-3 rounded-full p-3 transition-[box-shadow] duration-300 hover:ring-2 focus-visible:ring-2"
+          >
+            <Icon
+              name="lucide:move-up-right"
+              class="transition-transform duration-300 group-hover/github-link:rotate-12"
+              size={16}
+            />
+          </Link>
+        </div>
+      </div>
+    </div>
+    <div class="aspect-square p-2 [grid-area:j]">
+      <div class="bg-muted size-full border">
+        <WakatimeGraph client:load />
+      </div>
+    </div>
+    <div class="aspect-square p-2 [grid-area:k]">
+      <div data-trigger class="bg-muted size-full border">
+        <div
+          class="group/twitter relative flex size-full items-center justify-center bg-[url('/static/bento/twitter-background.png')] bg-cover bg-center bg-no-repeat"
+        >
+          <div
+            class="size-full bg-[url('/static/bento/twitter-foreground.png')] bg-cover bg-center bg-no-repeat transition-opacity duration-200 sm:opacity-0 sm:group-hover/twitter:opacity-100"
+            aria-hidden="true"
+          >
+            <p
+              class="text-foreground/80 bg-background absolute bottom-4 left-4 hidden border p-2 text-xs text-pretty sm:block"
+            >
+              TypeScript is<br />much better!
+            </p>
+          </div>
+          <Icon
+            name="mdi:twitter"
+            class="text-primary absolute size-1/2 sm:size-24"
+            aria-hidden="true"
+          />
+          <Link
+            href={SOCIAL_LINKS.find((link) => link.label === 'Twitter')?.href ||
+              '#'}
+            title="Visit my Twitter profile"
+            aria-label="Visit my Twitter profile"
+            external
+            class="bg-border/50 text-primary ring-ring group/twitter-link absolute end-0 bottom-0 m-3 rounded-full p-3 transition-[box-shadow] duration-300 hover:ring-2 focus-visible:ring-2"
+          >
+            <Icon
+              name="lucide:move-up-right"
+              class="transition-transform duration-300 group-hover/twitter-link:rotate-12"
+              size={16}
+            />
+          </Link>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
