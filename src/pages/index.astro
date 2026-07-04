@@ -120,7 +120,7 @@ const latestPost = await getAllPosts().then((posts) => posts.at(0))
               latestPost && (
                 <Link href={`/blog/${latestPost.id}`} class="flex h-full">
                   <img
-                    src={latestPost.data.imageWithText?.src ?? '#'}
+                    src={typeof latestPost.data.imageWithText === 'string' ? latestPost.data.imageWithText : latestPost.data.imageWithText?.src ?? '#'}
                     alt={`Featured image for the latest post: ${latestPost.data.title}`}
                     class="h-full border"
                   />
