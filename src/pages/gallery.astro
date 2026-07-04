@@ -1,0 +1,967 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import PageHead from '@/components/PageHead.astro'
+---
+
+<Layout>
+  <PageHead slot="head" title="Gallery" />
+
+<style is:global>
+  /* Page fade-in */
+  body { opacity: 0; transition: opacity 0.6s ease; }
+  body.ready { opacity: 1; }
+
+  /* UI slides up after intro */
+  #gallery-ui { opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease 0.4s, transform 0.8s ease 0.4s; }
+  #gallery-ui.visible { opacity: 1; transform: translateY(0); }
+
+  body, html {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    overflow: hidden;
+  }
+
+  #saturn-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+
+  #gallery-ui {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  #gallery-header {
+    pointer-events: all;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+  }
+  #gallery-header a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-family: monospace;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.2s;
+  }
+  #gallery-header a:hover { color: #fff; }
+  #gallery-title {
+    font-family: monospace;
+    font-size: 1rem;
+    color: rgba(255,255,255,0.8);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* Photo wall overlay - bottom */
+  #photos-bar {
+    pointer-events: all;
+    margin-top: auto;
+    padding: 1rem 1.5rem 1.5rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  #photos-strip {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+  }
+  #photos-strip::-webkit-scrollbar { height: 4px; }
+  #photos-strip::-webkit-scrollbar-track { background: transparent; }
+  #photos-strip::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+  .photo-thumb {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.2);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .photo-thumb:hover { border-color: rgba(255,255,255,0.6); transform: scale(1.05); }
+  .photo-thumb.active { border-color: #3b82f6; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(50%) sepia(20%); }
+
+  #photos-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  #photos-actions button, #photos-actions label {
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 0.35rem 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  #photos-actions button:hover, #photos-actions label:hover {
+    background: rgba(255,255,255,0.16);
+    color: #fff;
+  }
+  #photo-count {
+    font-family: monospace;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+    margin-left: auto;
+  }
+
+  /* Featured viewer */
+  #featured-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(8px);
+  }
+  #featured-viewer.open { display: flex; }
+  #featured-img {
+    max-width: 85vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border: 1px solid rgba(255,255,255,0.15);
+    filter: grayscale(20%) sepia(10%);
+    animation: featuredIn 0.3s ease;
+  }
+  @keyframes featuredIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  #close-featured {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.5rem;
+    font-family: monospace;
+    font-size: 1.2rem;
+    color: rgba(255,255,255,0.6);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  #close-featured:hover { color: #fff; }
+  #featured-nav {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+  }
+  #featured-nav button {
+    font-family: monospace;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #featured-nav button:hover { color: #fff; background: rgba(255,255,255,0.16); }
+
+  /* FAB Button */
+  #fab-container {
+    position: fixed;
+    top: 6rem;
+    right: 1.5rem;
+    z-index: 9999;
+    pointer-events: auto;
+  }
+  #fab-btn {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: #4a90e2;
+    color: white;
+    font-size: 1.5rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, background 0.2s;
+  }
+  #fab-btn:hover { transform: scale(1.05); background: #357abd; }
+  
+  /* Dropdown Menu */
+  #fab-menu {
+    position: absolute;
+    top: 3.5rem;
+    right: 0;
+    background: rgba(20, 20, 25, 0.95);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 160px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition: opacity 0.2s, transform 0.2s;
+    backdrop-filter: blur(8px);
+  }
+  #fab-menu.open {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0);
+  }
+  .fab-item {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.8);
+    padding: 0.5rem 1rem;
+    text-align: left;
+    font-family: monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .fab-item:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+  }
+
+  /* Upload Dialog */
+  #upload-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0; /* Remove default margin */
+    background: rgba(20, 20, 25, 0.95);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 1.5rem;
+    color: white;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    max-width: 90vw;
+    width: 320px;
+    z-index: 99999;
+  }
+  #upload-dialog::backdrop { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+  #upload-preview {
+    width: 100%;
+    height: 160px;
+    object-fit: contain;
+    background: rgba(0,0,0,0.5);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border: 1px dashed rgba(255,255,255,0.2);
+  }
+  .dialog-input {
+    width: 100%;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-family: monospace;
+    margin-bottom: 1rem;
+  }
+  .dialog-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+  .dialog-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-family: monospace;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .dialog-btn:hover { opacity: 0.8; }
+  .btn-cancel { background: rgba(255,255,255,0.1); color: white; }
+  .btn-submit { background: #4a90e2; color: white; }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* 3D Tooltip */
+  #gallery-tooltip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    font-family: monospace;
+    font-size: 0.85rem;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -150%);
+    transition: opacity 0.2s;
+    z-index: 100;
+  }
+  #gallery-tooltip.visible { opacity: 1; }
+
+</style>
+
+<!-- Saturn Canvas -->
+<canvas id="saturn-canvas"></canvas>
+
+<!-- Gallery UI overlay -->
+<div id="gallery-ui">
+  <!-- Header -->
+  <div id="gallery-header">
+    <a href="/">← Kembali</a>
+    <span id="gallery-title">Moon &amp; Stars — Gallery</span>
+    <span></span>
+  </div>
+
+  <!-- Photo strip at bottom -->
+  <div id="photos-bar">
+    <div id="photos-strip">
+      <span id="empty-hint">Memuat galeri...</span>
+    </div>
+    <div id="photos-actions">
+      <span id="photo-count"></span>
+    </div>
+  </div>
+
+  <div id="gallery-tooltip"></div>
+</div>
+
+<!-- Floating Action Button (Always on top) -->
+<div id="fab-container">
+  <button id="fab-btn" aria-label="Upload Foto">+</button>
+  <div id="fab-menu">
+    <button class="fab-item" id="btn-upload-gallery">🖼️ Ambil dari Gallery</button>
+    <button class="fab-item" id="btn-upload-camera">📷 Ambil dari Kamera</button>
+  </div>
+</div>
+
+<input type="file" id="input-gallery" accept="image/*" style="display:none" />
+<input type="file" id="input-camera" accept="image/*" capture="environment" style="display:none" />
+
+<!-- Upload Dialog -->
+<dialog id="upload-dialog">
+  <form method="dialog" id="upload-form">
+    <h3 style="margin-top:0; font-family: monospace; font-size: 1.1rem; margin-bottom: 1rem;">Upload Foto</h3>
+    <img id="upload-preview" src="" alt="Preview" />
+    <input type="text" id="upload-name" class="dialog-input" placeholder="Nama gambar..." required autocomplete="off" />
+    <div class="dialog-actions">
+      <button type="button" class="dialog-btn btn-cancel" id="btn-cancel-upload">Batal</button>
+      <button type="submit" class="dialog-btn btn-submit" id="btn-submit-upload">Upload</button>
+    </div>
+  </form>
+</dialog>
+
+  <!-- Photo strip at bottom -->
+  <div id="photos-bar">
+    <div id="photos-strip">
+      <span id="empty-hint">Memuat galeri...</span>
+    </div>
+    <div id="photos-actions">
+      <span id="photo-count"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Featured photo viewer -->
+<div id="featured-viewer">
+  <button id="close-featured">✕</button>
+  <img id="featured-img" src="" alt="Featured photo" />
+  <div id="featured-nav">
+    <button id="prev-btn">← Sebelumnya</button>
+    <button id="next-btn">Selanjutnya →</button>
+  </div>
+</div>
+
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js'
+
+  // ── Config ──
+  const PARAMS = {
+    particleCount: 18000,      // more particles = denser, clearer Saturn
+    particleSize: 2.4,         // bigger glowing dots
+    ringThickness: 1.5,
+    innerRingWidth: 27.0,
+    outerRingWidth: 44.0,
+    ringGap: 5.0,
+    glowStrength: 1.0,         // full brightness
+    starCount: 9000,           // more stars
+    starOpacity: 0.95,         // near-opaque stars
+    rotationSpeed: 0.0015,
+    axialTilt: 26.7,
+  }
+  const CONFIG = {
+    sphereRadius: 42,
+    ringStartOffset: 10,
+    sphereColor: new THREE.Color(0x4a90e2),   // rich mid-blue planet body
+    ringColor:   new THREE.Color(0x7ec8f5),   // lighter icy-blue rings
+  }
+
+  // ── Scene ──
+  const canvas = document.getElementById('saturn-canvas')
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false })
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6))
+  renderer.setClearColor(0x000000, 1)
+
+  const scene = new THREE.Scene()
+  scene.fog = new THREE.FogExp2(0x000005, 0.0005)   // very light fog — keeps distant objects visible
+
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000)
+  camera.position.set(0, 50, 220)
+  camera.lookAt(0, 0, 0)
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight
+    camera.updateProjectionMatrix()
+    renderer.setSize(window.innerWidth, window.innerHeight)
+  })
+
+  // ── Shared radial glow texture ──
+  function makeGlowTexture() {
+    const c = document.createElement('canvas')
+    c.width = c.height = 32
+    const ctx = c.getContext('2d')
+    const g = ctx.createRadialGradient(16, 16, 0, 16, 16, 16)
+    g.addColorStop(0, 'rgba(255,255,255,1)')
+    g.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, 32, 32)
+    return new THREE.CanvasTexture(c)
+  }
+  const glowTex = makeGlowTexture()
+
+  // ── Stars ──
+  function buildStars() {
+    const geo = new THREE.BufferGeometry()
+    const pos = [], col = []
+    for (let i = 0; i < PARAMS.starCount; i++) {
+      const r = 500 + Math.random() * 700
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(2 * Math.random() - 1)
+      pos.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi))
+      const b = 0.6 + Math.random() * 0.4   // brighter base (0.6–1.0)
+      col.push(b, b, b)   // pure white
+    }
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3))
+    const stars = new THREE.Points(geo, new THREE.PointsMaterial({
+      size: 2.2, vertexColors: true, map: glowTex,
+      transparent: true, opacity: PARAMS.starOpacity,
+      blending: THREE.AdditiveBlending, fog: false, sizeAttenuation: true,
+    }))
+    scene.add(stars)
+    return stars
+  }
+  const stars = buildStars()
+
+  // ── Saturn particle system ──
+  const VERTEX_SHADER = `
+    attribute vec3 saturnPosition;
+    attribute vec3 particleColor;
+    uniform float uSize;
+    uniform float uOpacity;
+    varying vec3 vColor;
+    varying float vAlpha;
+    void main() {
+      vColor = particleColor;
+      vec4 mvPos = modelViewMatrix * vec4(saturnPosition, 1.0);
+      gl_PointSize = uSize * (300.0 / -mvPos.z);
+      gl_Position = projectionMatrix * mvPos;
+      vAlpha = uOpacity;
+    }
+  `
+  const FRAGMENT_SHADER = `
+    uniform sampler2D uMap;
+    varying vec3 vColor;
+    varying float vAlpha;
+    void main() {
+      vec4 tex = texture2D(uMap, gl_PointCoord);
+      gl_FragColor = vec4(vColor, tex.a * vAlpha);
+      if (gl_FragColor.a < 0.01) discard;
+    }
+  `
+
+  function buildSaturn() {
+    const count = PARAMS.particleCount
+    const saturnPos = new Float32Array(count * 3)
+    const colors    = new Float32Array(count * 3)
+
+    const rPlanet = CONFIG.sphereRadius
+    const rInnerStart = rPlanet + CONFIG.ringStartOffset
+    const rInnerEnd   = rInnerStart + PARAMS.innerRingWidth
+    const rOuterStart = rInnerEnd + PARAMS.ringGap
+    const rOuterEnd   = rOuterStart + PARAMS.outerRingWidth
+    const sc = CONFIG.sphereColor
+    const rc = CONFIG.ringColor
+
+    for (let i = 0; i < count; i++) {
+      const idx = i * 3
+      if (i < count * 0.3) {
+        const phi   = Math.acos(-1 + (2 * i) / (count * 0.3))
+        const theta = Math.sqrt(count * 0.3 * Math.PI) * phi
+        const noise = (Math.random() - 0.5) * 0.2
+        saturnPos[idx]     = rPlanet * Math.sin(phi) * Math.cos(theta)
+        saturnPos[idx + 1] = rPlanet * Math.cos(phi)
+        saturnPos[idx + 2] = rPlanet * Math.sin(phi) * Math.sin(theta)
+        colors[idx] = sc.r + noise; colors[idx+1] = sc.g + noise; colors[idx+2] = sc.b + noise
+      } else {
+        const angle = Math.random() * Math.PI * 2
+        let radius, isInner
+        if (Math.random() > 0.5) {
+          isInner = true
+          radius = rInnerStart + Math.pow(Math.random(), 0.8) * (rInnerEnd - rInnerStart)
+        } else {
+          isInner = false
+          radius = rOuterStart + Math.random() * (rOuterEnd - rOuterStart)
+        }
+        const ySpread = (Math.random() - 0.5) + (Math.random() - 0.5)
+        saturnPos[idx]     = radius * Math.cos(angle)
+        saturnPos[idx + 1] = ySpread * PARAMS.ringThickness
+        saturnPos[idx + 2] = radius * Math.sin(angle)
+        let brightness = 0.5 + Math.random() * 0.5
+        if (isInner) brightness *= Math.sin((radius - rInnerStart) / PARAMS.innerRingWidth * Math.PI)
+        else         brightness *= Math.sin((radius - rOuterStart) / PARAMS.outerRingWidth * Math.PI) * 0.8
+        colors[idx] = rc.r * brightness; colors[idx+1] = rc.g * brightness; colors[idx+2] = rc.b * brightness
+      }
+    }
+
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(saturnPos.slice(), 3))
+    geo.setAttribute('saturnPosition', new THREE.BufferAttribute(saturnPos, 3))
+    geo.setAttribute('particleColor', new THREE.BufferAttribute(colors, 3))
+
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: VERTEX_SHADER,
+      fragmentShader: FRAGMENT_SHADER,
+      uniforms: {
+        uSize:    { value: PARAMS.particleSize },
+        uOpacity: { value: PARAMS.glowStrength },
+        uMap:     { value: glowTex },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    })
+
+    const mesh = new THREE.Points(geo, mat)
+    mesh.rotation.z = PARAMS.axialTilt * (Math.PI / 180)
+    mesh.rotation.x = 0.3
+    scene.add(mesh)
+    return mesh
+  }
+  const saturn = buildSaturn()
+
+  // ── Easing helpers ──
+  // easeInOutSine: smoothest possible — zero velocity at both ends of each phase
+  function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2 }
+  // easeInSine: gentle ramp up
+  function easeInSine(t) { return 1 - Math.cos((t * Math.PI) / 2) }
+  // easeOutSine: gentle ramp down
+  function easeOutSine(t) { return Math.sin((t * Math.PI) / 2) }
+
+  // ── Intro animation state ──
+  // Phase 1: zoom IN  (0 → ZOOM_IN_DUR ms)   r: START_R → CLOSE_R  (easeInSine — gentle build)
+  // Phase 2: zoom OUT (ZOOM_IN_DUR → TOTAL)   r: CLOSE_R → REST_R   (easeInOutSine — glides smoothly)
+  const INTRO_START_R  = 520   // start a comfortable distance away
+  const INTRO_CLOSE_R  = 78    // zoom to near-ring distance (not too jarring)
+  const INTRO_REST_R   = 220   // resting distance after pull-back
+  const ZOOM_IN_DUR    = 2000  // ms — steady, cinematic zoom in
+  const ZOOM_OUT_DUR   = 3200  // ms — very slow, graceful pull back
+  const TOTAL_DUR      = ZOOM_IN_DUR + ZOOM_OUT_DUR
+
+  let introStart = null
+  let introComplete = false
+
+  // ── Mouse orbit ──
+  let isDragging = false, prevMouse = { x: 0, y: 0 }
+  let spherical = { theta: 0.3, phi: 1.2, r: INTRO_REST_R }
+
+  canvas.addEventListener('mousedown', e => {
+    if (!introComplete) return
+    isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }
+  })
+  window.addEventListener('mouseup', () => { isDragging = false })
+  window.addEventListener('mousemove', e => {
+    if (!isDragging || !introComplete) return
+    const dx = e.clientX - prevMouse.x
+    const dy = e.clientY - prevMouse.y
+    spherical.theta -= dx * 0.005
+    spherical.phi = Math.max(0.3, Math.min(Math.PI - 0.3, spherical.phi + dy * 0.005))
+    prevMouse = { x: e.clientX, y: e.clientY }
+  })
+  canvas.addEventListener('wheel', e => {
+    if (!introComplete) return
+    spherical.r = Math.max(80, Math.min(800, spherical.r + e.deltaY * 0.3))
+  })
+  let touchPrev = null
+  canvas.addEventListener('touchstart', e => { if (introComplete) touchPrev = e.touches[0] })
+  canvas.addEventListener('touchmove', e => {
+    if (!touchPrev || !introComplete) return
+    const t = e.touches[0]
+    spherical.theta -= (t.clientX - touchPrev.clientX) * 0.005
+    spherical.phi = Math.max(0.3, Math.min(Math.PI - 0.3, spherical.phi + (t.clientY - touchPrev.clientY) * 0.005))
+    touchPrev = t
+  })
+  canvas.addEventListener('touchend', () => { touchPrev = null })
+
+  // ── Image Wall (On Saturn Rings) ──
+  const imageWallGroup = new THREE.Group()
+  scene.add(imageWallGroup)
+  let imageMeshes = []
+  let loadedTextures = []
+
+  const circleVertexShader = `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `
+  const circleFragmentShader = `
+    uniform sampler2D tDiffuse;
+    uniform float aspect;
+    varying vec2 vUv;
+    void main() {
+      vec2 center = vUv - 0.5;
+      if (dot(center, center) > 0.25) discard;
+      
+      vec2 uv = vUv - 0.5;
+      if (aspect > 1.0) {
+        uv.x *= aspect;
+      } else {
+        uv.y /= aspect;
+      }
+      uv += 0.5;
+      gl_FragColor = texture2D(tDiffuse, uv);
+    }
+  `
+
+  function rebuildImageWall(photosList) {
+    // Clear old meshes
+    imageMeshes.forEach(m => {
+      m.children[0].geometry.dispose()
+      m.children[0].material.dispose()
+    })
+    imageWallGroup.clear()
+    imageMeshes = []
+
+    const n = photosList.length
+    if (n === 0) return
+
+    // Radius of the rings (around 50-70)
+    const r = 60
+    const thumbSize = 8
+
+    photosList.forEach((p, i) => {
+      const tex = loadedTextures[i]
+      if (!tex) return
+      
+      const aspect = tex.image ? tex.image.width / tex.image.height : 1
+
+      const angle = (i / n) * Math.PI * 2
+      const x = Math.cos(angle) * r
+      const z = Math.sin(angle) * r
+      const y = Math.sin(i * 3.1) * 3 // Slight vertical variation
+
+      // Use a square plane geometry so the circle shader maps perfectly
+      const geo = new THREE.PlaneGeometry(thumbSize, thumbSize)
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          tDiffuse: { value: tex },
+          aspect: { value: aspect }
+        },
+        vertexShader: circleVertexShader,
+        fragmentShader: circleFragmentShader,
+        side: THREE.DoubleSide,
+        transparent: true
+      })
+
+      const mesh = new THREE.Mesh(geo, mat)
+      mesh.position.set(x, y, z)
+      mesh.lookAt(0, 0, 0)
+      
+      // Match Saturn's axial tilt
+      const pivot = new THREE.Group()
+      pivot.add(mesh)
+      imageWallGroup.add(pivot)
+      imageMeshes.push(pivot)
+    })
+    
+    // Apply Saturn tilt to the whole wall
+    imageWallGroup.rotation.z = PARAMS.axialTilt * (Math.PI / 180)
+    imageWallGroup.rotation.x = 0.3
+  }
+
+  // ── Raycaster (Hover/Click logic) ──
+  const raycaster = new THREE.Raycaster()
+  const mouse = new THREE.Vector2(-1, -1)
+  const tooltip = document.getElementById('gallery-tooltip')
+  let hoveredIndex = -1
+
+  window.addEventListener('mousemove', e => {
+    if (!isDragging && introComplete) {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
+      tooltip.style.left = e.clientX + 'px'
+      tooltip.style.top = e.clientY + 'px'
+    } else {
+      mouse.x = -1; mouse.y = -1; // offscreen
+    }
+  })
+
+  canvas.addEventListener('click', () => {
+    if (hoveredIndex !== -1 && !isDragging) {
+      openFeatured(hoveredIndex)
+    }
+  })
+
+  // ── Animation ──
+  function animate(ts) {
+    requestAnimationFrame(animate)
+    saturn.rotation.y += PARAMS.rotationSpeed
+    imageWallGroup.rotation.y += PARAMS.rotationSpeed * 0.8 // Slightly different speed for parallax
+    stars.rotation.y += 0.0002
+
+    let currentR = spherical.r
+
+    if (!introComplete) {
+      if (introStart === null) introStart = ts
+      const elapsed = Math.min(ts - introStart, TOTAL_DUR)
+
+      if (elapsed < ZOOM_IN_DUR) {
+        // Phase 1: zoom IN — easeInSine for a gentle, building approach
+        const t = easeInSine(elapsed / ZOOM_IN_DUR)
+        currentR = INTRO_START_R + (INTRO_CLOSE_R - INTRO_START_R) * t
+      } else if (elapsed < TOTAL_DUR) {
+        // Phase 2: zoom OUT — easeInOutSine for a perfectly smooth glide back
+        const t = easeInOutSine((elapsed - ZOOM_IN_DUR) / ZOOM_OUT_DUR)
+        currentR = INTRO_CLOSE_R + (INTRO_REST_R - INTRO_CLOSE_R) * t
+      } else {
+        currentR = INTRO_REST_R
+        spherical.r = INTRO_REST_R
+        introComplete = true
+        document.getElementById('gallery-ui').classList.add('visible')
+      }
+    }
+
+    camera.position.x = currentR * Math.sin(spherical.phi) * Math.sin(spherical.theta)
+    camera.position.y = currentR * Math.cos(spherical.phi)
+    camera.position.z = currentR * Math.sin(spherical.phi) * Math.cos(spherical.theta)
+    camera.lookAt(0, 0, 0)
+
+    // Raycast to image wall
+    if (introComplete) {
+      raycaster.setFromCamera(mouse, camera)
+      // raycaster checks all meshes inside the pivot groups
+      const intersects = raycaster.intersectObjects(imageWallGroup.children, true)
+      
+      let currentHover = -1
+      if (intersects.length > 0) {
+        const hitMesh = intersects[0].object
+        // Find which pivot this mesh belongs to
+        currentHover = imageMeshes.findIndex(pivot => pivot.children[0] === hitMesh)
+      }
+
+      if (currentHover !== hoveredIndex) {
+        hoveredIndex = currentHover
+        if (hoveredIndex !== -1 && photos[hoveredIndex]) {
+          tooltip.textContent = photos[hoveredIndex].name
+          tooltip.classList.add('visible')
+          document.body.style.cursor = 'pointer'
+        } else {
+          tooltip.classList.remove('visible')
+          document.body.style.cursor = 'default'
+        }
+      }
+    }
+
+    renderer.render(scene, camera)
+  }
+  // Fade body in
+  requestAnimationFrame(() => {
+    document.body.classList.add('ready')
+    animate(performance.now())
+  })
+
+  // ── Photo Gallery (API Backed) ──
+  let photos = []      // [{id, name, url}]
+  let featuredIdx = -1
+
+  function renderStrip() {
+    const strip = document.getElementById('photos-strip')
+    const hint  = document.getElementById('empty-hint')
+    const count = document.getElementById('photo-count')
+    strip.innerHTML = ''
+    if (!photos.length) {
+      if (hint) {
+        hint.textContent = 'Belum ada foto.'
+        strip.appendChild(hint)
+      }
+      if (count) count.textContent = ''
+      return
+    }
+    if (count) count.textContent = `${photos.length} foto`
+    photos.forEach((p, i) => {
+      const div = document.createElement('div')
+      div.className = 'photo-thumb' + (i === featuredIdx ? ' active' : '')
+      const img = document.createElement('img')
+      img.src = p.url; img.alt = p.name
+      div.appendChild(img)
+      div.addEventListener('click', () => openFeatured(i))
+      strip.appendChild(div)
+    })
+  }
+
+  function openFeatured(idx) {
+    featuredIdx = idx
+    const viewer = document.getElementById('featured-viewer')
+    const img    = document.getElementById('featured-img')
+    img.src = photos[idx].url
+    viewer.classList.add('open')
+    renderStrip()
+  }
+
+  document.getElementById('close-featured').addEventListener('click', () => {
+    document.getElementById('featured-viewer').classList.remove('open')
+  })
+  document.getElementById('prev-btn').addEventListener('click', () => {
+    if (!photos.length) return
+    openFeatured((featuredIdx - 1 + photos.length) % photos.length)
+  })
+  document.getElementById('next-btn').addEventListener('click', () => {
+    if (!photos.length) return
+    openFeatured((featuredIdx + 1) % photos.length)
+  })
+
+  async function reloadPhotos() {
+    try {
+      const res = await fetch('/api/gallery/images')
+      if (res.ok) {
+        photos = await res.json()
+        renderStrip()
+        
+        // Load textures for 3D wall
+        const textureLoader = new THREE.TextureLoader()
+        loadedTextures = await Promise.all(photos.map(p => 
+          new Promise(resolve => {
+            textureLoader.load(p.url, tex => {
+              tex.colorSpace = THREE.SRGBColorSpace
+              resolve(tex)
+            }, undefined, () => resolve(null))
+          })
+        ))
+        rebuildImageWall(photos)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  // ── FAB & Upload Flow ──
+  const fabBtn = document.getElementById('fab-btn')
+  const fabMenu = document.getElementById('fab-menu')
+  const inputGallery = document.getElementById('input-gallery')
+  const inputCamera = document.getElementById('input-camera')
+  const uploadDialog = document.getElementById('upload-dialog')
+  const uploadPreview = document.getElementById('upload-preview')
+  const uploadName = document.getElementById('upload-name')
+  const uploadForm = document.getElementById('upload-form')
+  const btnSubmitUpload = document.getElementById('btn-submit-upload')
+  const btnCancelUpload = document.getElementById('btn-cancel-upload')
+  
+  let selectedFile = null
+
+  fabBtn.addEventListener('click', () => {
+    fabMenu.classList.toggle('open')
+  })
+  document.addEventListener('click', (e) => {
+    if (!fabBtn.contains(e.target) && !fabMenu.contains(e.target)) {
+      fabMenu.classList.remove('open')
+    }
+  })
+
+  document.getElementById('btn-upload-gallery').addEventListener('click', () => {
+    fabMenu.classList.remove('open')
+    inputGallery.click()
+  })
+  document.getElementById('btn-upload-camera').addEventListener('click', () => {
+    fabMenu.classList.remove('open')
+    inputCamera.click()
+  })
+
+  function handleFileSelect(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    selectedFile = file
+    uploadPreview.src = URL.createObjectURL(file)
+    uploadName.value = ''
+    uploadDialog.showModal()
+    e.target.value = ''
+  }
+
+  inputGallery.addEventListener('change', handleFileSelect)
+  inputCamera.addEventListener('change', handleFileSelect)
+
+  btnCancelUpload.addEventListener('click', () => {
+    uploadDialog.close()
+    selectedFile = null
+  })
+
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    if (!selectedFile) return
+    
+    btnSubmitUpload.disabled = true
+    btnSubmitUpload.textContent = 'Mengunggah...'
+
+    const formData = new FormData()
+    formData.append('file', selectedFile)
+    formData.append('name', uploadName.value)
+
+    try {
+      const res = await fetch('/api/gallery/images', {
+        method: 'POST',
+        body: formData
+      })
+      if (res.ok) {
+        uploadDialog.close()
+        await reloadPhotos()
+      } else {
+        alert('Gagal mengunggah foto.')
+      }
+    } catch (e) {
+      alert('Terjadi kesalahan.')
+    } finally {
+      btnSubmitUpload.disabled = false
+      btnSubmitUpload.textContent = 'Upload'
+      selectedFile = null
+    }
+  })
+
+  // Init
+  await reloadPhotos()
+</script>
+</Layout>
