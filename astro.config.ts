@@ -17,9 +17,11 @@ import rehypeDocument from 'rehype-document'
 import tailwindcss from '@tailwindcss/vite'
 
 import svelte from '@astrojs/svelte';
+import vercel from '@astrojs/vercel';
 
 export default defineConfig({
   site: 'https://enscribe.dev',
+  adapter: vercel(),
   integrations: [expressiveCode(), mdx(), react(), sitemap(), icon(), svelte()],
   vite: {
     plugins: [tailwindcss()],
