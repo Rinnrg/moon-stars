@@ -40,10 +40,10 @@ const subpostCount = !isSubpost(entry.id) ? await getSubpostCount(entry.id) : 0
               typeof entry.data.imageWithoutText === 'string'
                 ? entry.data.imageWithoutText
                 : entry.data.imageWithoutText
-                ? entry.data.imageWithoutText.src
+                ? entry.data.imageWithoutText
                 : typeof entry.data.imageWithText === 'string'
                 ? entry.data.imageWithText
-                : entry.data.imageWithText!.src
+                : entry.data.imageWithText!
             }
             alt={entry.data.title}
             width={1200}
