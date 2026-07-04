@@ -37,14 +37,19 @@ const subpostCount = !isSubpost(entry.id) ? await getSubpostCount(entry.id) : 0
         <div class="max-w-3xs sm:shrink-0">
           <Image
             src={
-              entry.data.imageWithoutText
+              typeof entry.data.imageWithoutText === 'string'
                 ? entry.data.imageWithoutText
-                : entry.data.imageWithText!
+                : entry.data.imageWithoutText
+                ? entry.data.imageWithoutText.src
+                : typeof entry.data.imageWithText === 'string'
+                ? entry.data.imageWithText
+                : entry.data.imageWithText!.src
             }
             alt={entry.data.title}
             width={1200}
             height={630}
             class="object-cover"
+            inferSize={true}
           />
         </div>
       )

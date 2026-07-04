@@ -55,4 +55,112 @@ const years = Object.keys(postsByYear).sort((a, b) => parseInt(b) - parseInt(a))
     baseUrl="/blog/"
     client:load
   />
+
+  <!-- Floating Action Button -->
+  <button
+    id="btn-add-blog"
+    class="fixed bottom-8 right-8 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-2xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-blue-700"
+    aria-label="Tambah Blog"
+  >
+    +
+  </button>
+
+  <!-- Create Blog Dialog -->
+  <dialog id="blog-dialog" class="m-auto rounded-xl border border-white/10 bg-[#141419] p-6 text-white shadow-2xl backdrop-blur-md w-full max-w-2xl">
+    <form id="blog-form" class="flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold font-mono">Tambah Blog Baru</h2>
+        <button type="button" id="btn-close-blog" class="text-white/60 hover:text-white">✕</button>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="blog-title" class="text-sm text-white/70">Judul</label>
+        <input type="text" id="blog-title" name="title" required class="rounded-md border border-white/20 bg-black/50 px-3 py-2 text-white placeholder-white/30 focus:border-blue-500 focus:outline-none" placeholder="Masukkan judul artikel..." />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="blog-desc" class="text-sm text-white/70">Deskripsi Singkat</label>
+        <input type="text" id="blog-desc" name="description" required class="rounded-md border border-white/20 bg-black/50 px-3 py-2 text-white placeholder-white/30 focus:border-blue-500 focus:outline-none" placeholder="Ringkasan artikel..." />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="blog-tags" class="text-sm text-white/70">Tags (pisahkan dengan koma)</label>
+        <input type="text" id="blog-tags" name="tags" class="rounded-md border border-white/20 bg-black/50 px-3 py-2 text-white placeholder-white/30 focus:border-blue-500 focus:outline-none" placeholder="ctf, tutorial, web" />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="blog-image" class="text-sm text-white/70">Gambar Cover (Banner)</label>
+        <input type="file" id="blog-image" name="image" accept="image/*" class="rounded-md border border-white/20 bg-black/50 px-3 py-2 text-white file:mr-4 file:rounded file:border-0 file:bg-white/10 file:px-4 file:py-1 file:text-sm file:text-white hover:file:bg-white/20" />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="blog-content" class="text-sm text-white/70">Konten (Markdown)</label>
+        <textarea id="blog-content" name="content" required rows="8" class="rounded-md border border-white/20 bg-black/50 px-3 py-2 text-white placeholder-white/30 focus:border-blue-500 focus:outline-none font-mono text-sm" placeholder="## Pengantar\n\nTulis artikel Anda di sini... Mendukung komponen MDX!"></textarea>
+      </div>
+
+      <div class="mt-2 flex justify-end gap-3">
+        <button type="button" id="btn-cancel-blog" class="rounded-md bg-white/10 px-4 py-2 text-white transition-colors hover:bg-white/20">Batal</button>
+        <button type="submit" id="btn-submit-blog" class="rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700">Simpan Blog</button>
+      </div>
+    </form>
+  </dialog>
+
+  <style>
+    #blog-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+    }
+  </style>
+
+  <script>
+    const btnAdd = document.getElementById('btn-add-blog') as HTMLButtonElement
+    const dialog = document.getElementById('blog-dialog') as HTMLDialogElement
+    const btnClose = document.getElementById('btn-close-blog') as HTMLButtonElement
+    const btnCancel = document.getElementById('btn-cancel-blog') as HTMLButtonElement
+    const form = document.getElementById('blog-form') as HTMLFormElement
+    const btnSubmit = document.getElementById('btn-submit-blog') as HTMLButtonElement
+
+    btnAdd?.addEventListener('click', () => {
+      dialog.showModal()
+    })
+
+    const closeDialog = () => {
+      dialog.close()
+      form.reset()
+    }
+
+    btnClose?.addEventListener('click', closeDialog)
+    btnCancel?.addEventListener('click', closeDialog)
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      
+      const originalText = btnSubmit.textContent
+      btnSubmit.textContent = 'Menyimpan...'
+      btnSubmit.disabled = true
+
+      try {
+        const formData = new FormData(form)
+        const res = await fetch('/api/blog/create', {
+          method: 'POST',
+          body: formData
+        })
+
+        const data = await res.json()
+
+        if (!res.ok) {
+          alert('Error: ' + data.error)
+        } else {
+          alert('Blog berhasil dibuat! Silakan refresh halaman atau jalankan ulang server untuk memuat file MDX baru.')
+          closeDialog()
+          // Optional: window.location.reload()
+        }
+      } catch (err: any) {
+        alert('Terjadi kesalahan: ' + err.message)
+      } finally {
+        btnSubmit.textContent = originalText
+        btnSubmit.disabled = false
+      }
+    })
+  </script>
 </Layout>

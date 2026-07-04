@@ -140,8 +140,12 @@ const tocSections = await getTOCSections(currentPostId)
       (post.data.imageWithoutText || post.data.imageWithText) && (
         <img
           src={
-            post.data.imageWithoutText
+            typeof post.data.imageWithoutText === 'string'
+              ? post.data.imageWithoutText
+              : post.data.imageWithoutText
               ? post.data.imageWithoutText.src
+              : typeof post.data.imageWithText === 'string'
+              ? post.data.imageWithText
               : post.data.imageWithText!.src
           }
           alt={post.data.title}
