@@ -302,6 +302,132 @@ import PageHead from '@/components/PageHead.astro'
   .btn-submit { background: #4a90e2; color: white; }
   .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  /* ── Upload Success Overlay ── */
+  #upload-success-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+  }
+  #upload-success-overlay.active {
+    pointer-events: all;
+    opacity: 1;
+  }
+
+  /* Dark backdrop */
+  #uso-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Photo being scanned */
+  #uso-photo-wrap {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(320px, 80vw);
+    height: min(320px, 80vw);
+  }
+  #uso-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.2);
+    display: block;
+    border-radius: 4px;
+  }
+
+  /* Scan line */
+  #uso-scanline {
+    position: absolute;
+    left: 0; right: 0;
+    top: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, #3b82f6 30%, #93c5fd 50%, #3b82f6 70%, transparent 100%);
+    box-shadow: 0 0 16px 4px rgba(59,130,246,0.8);
+    opacity: 0;
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  #uso-scanline.scanning {
+    opacity: 1;
+    animation: usoScan 1.4s cubic-bezier(0.4,0,0.6,1) forwards;
+  }
+  @keyframes usoScan {
+    0%   { top: 0%; opacity: 1; }
+    95%  { top: 100%; opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* Scan corner decorations */
+  #uso-photo-wrap::before, #uso-photo-wrap::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: #3b82f6;
+    border-style: solid;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 2;
+  }
+  #uso-photo-wrap.scanning::before, #uso-photo-wrap.scanning::after { opacity: 1; }
+  #uso-photo-wrap::before { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
+  #uso-photo-wrap::after  { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
+
+  /* Checkmark SVG */
+  #uso-check {
+    position: absolute;
+    z-index: 3;
+    width: 90px; height: 90px;
+    opacity: 0;
+    transform: scale(0.4);
+    transition: none;
+    filter: drop-shadow(0 0 16px rgba(52,211,153,0.9));
+  }
+  #uso-check.visible {
+    animation: usoCheckIn 0.55s cubic-bezier(0.175,0.885,0.32,1.275) forwards;
+  }
+  @keyframes usoCheckIn {
+    0%   { opacity: 0; transform: scale(0.3); }
+    60%  { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  #uso-check-path {
+    stroke-dasharray: 80;
+    stroke-dashoffset: 80;
+  }
+  #uso-check.visible #uso-check-path {
+    animation: usoDash 0.5s ease 0.15s forwards;
+  }
+  @keyframes usoDash {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* Canvas for dissolve particles */
+  #uso-particle-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: 4px;
+  }
+
+  /* Fade out phase */
+  #uso-photo-wrap.dissolving {
+    animation: usoDissolve 0.5s ease forwards;
+  }
+  @keyframes usoDissolve {
+    to { opacity: 0; transform: scale(0.85); }
+  }
+
   /* 3D Tooltip */
   #gallery-tooltip {
     position: absolute;
@@ -373,6 +499,21 @@ import PageHead from '@/components/PageHead.astro'
     </div>
   </form>
 </dialog>
+
+<!-- Upload Success Overlay -->
+<div id="upload-success-overlay">
+  <div id="uso-backdrop"></div>
+  <div id="uso-photo-wrap">
+    <img id="uso-photo" src="" alt="Uploaded" />
+    <div id="uso-scanline"></div>
+    <canvas id="uso-particle-canvas"></canvas>
+    <!-- Checkmark SVG -->
+    <svg id="uso-check" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="40" cy="40" r="36" stroke="#34d399" stroke-width="3" opacity="0.4"/>
+      <path id="uso-check-path" d="M22 40 L34 53 L58 28" stroke="#34d399" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  </div>
+</div>
 
   <!-- Photo strip at bottom -->
   <div id="photos-bar">
@@ -930,6 +1071,171 @@ import PageHead from '@/components/PageHead.astro'
     selectedFile = null
   })
 
+  // ── Upload Success Animation ──
+  function playUploadSuccessAnimation(previewSrc) {
+    return new Promise(resolve => {
+      const overlay   = document.getElementById('upload-success-overlay')
+      const usoPhoto  = document.getElementById('uso-photo')
+      const scanline  = document.getElementById('uso-scanline')
+      const check     = document.getElementById('uso-check')
+      const wrap      = document.getElementById('uso-photo-wrap')
+      const pCanvas   = document.getElementById('uso-particle-canvas')
+
+      // Reset state
+      usoPhoto.src = previewSrc
+      scanline.classList.remove('scanning')
+      check.classList.remove('visible')
+      wrap.classList.remove('scanning', 'dissolving')
+      overlay.classList.remove('active')
+      usoPhoto.style.opacity = '1'
+      usoPhoto.style.transform = 'none'
+      pCanvas.style.opacity = '0'
+      void overlay.offsetWidth // reflow
+
+      overlay.classList.add('active')
+
+      // Phase 1: scan (after short delay)
+      setTimeout(() => {
+        wrap.classList.add('scanning')
+        scanline.classList.add('scanning')
+      }, 200)
+
+      // Phase 2: show checkmark after scan
+      setTimeout(() => {
+        check.classList.add('visible')
+      }, 1900)
+
+      // Phase 3: dissolve photo into particles toward Saturn
+      setTimeout(() => {
+        check.style.animation = 'none'
+        check.style.opacity = '0'
+        check.style.transition = 'opacity 0.3s'
+
+        const imgEl = usoPhoto
+        const w = wrap.offsetWidth
+        const h = wrap.offsetHeight
+
+        pCanvas.width  = w
+        pCanvas.height = h
+        pCanvas.style.opacity = '1'
+
+        const ctx2d = pCanvas.getContext('2d')
+
+        // Draw photo onto offscreen canvas to sample pixel colors
+        const off = document.createElement('canvas')
+        off.width = w; off.height = h
+        const offCtx = off.getContext('2d')
+        offCtx.drawImage(imgEl, 0, 0, w, h)
+
+        // Hide original photo
+        usoPhoto.style.transition = 'opacity 0.3s'
+        usoPhoto.style.opacity = '0'
+
+        // Sample pixels for particles
+        const sampleStep = 8
+        const particles = []
+        try {
+          const imageData = offCtx.getImageData(0, 0, w, h)
+          const data = imageData.data
+          for (let py = 0; py < h; py += sampleStep) {
+            for (let px = 0; px < w; px += sampleStep) {
+              const idx4 = (py * w + px) * 4
+              const r = data[idx4], g = data[idx4+1], b = data[idx4+2], a = data[idx4+3]
+              if (a < 50) continue
+              particles.push({
+                x: px + Math.random() * sampleStep,
+                y: py + Math.random() * sampleStep,
+                color: `rgba(${r},${g},${b},1)`,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2,
+                size: Math.random() * 3 + 1.5,
+                alpha: 1,
+                life: 0,
+              })
+            }
+          }
+        } catch(e) {
+          // CORS: fallback to blue particles
+          for (let i = 0; i < 300; i++) {
+            particles.push({
+              x: Math.random() * w, y: Math.random() * h,
+              color: `hsl(${210 + Math.random()*40},80%,70%)`,
+              vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2,
+              size: Math.random() * 3 + 1.5, alpha: 1, life: 0,
+            })
+          }
+        }
+
+        // Saturn is roughly at center-left of viewport
+        // wrap center in viewport coords
+        const wrapRect = wrap.getBoundingClientRect()
+        const wrapCX = wrapRect.left + wrapRect.width / 2
+        const wrapCY = wrapRect.top  + wrapRect.height / 2
+        // canvas-local target = saturn direction (roughly center of screen for simplicity)
+        const satTargetX = window.innerWidth  / 2 - wrapRect.left
+        const satTargetY = window.innerHeight / 2 - wrapRect.top
+
+        const duration = 1200 // ms
+        let startT = null
+
+        function animParticles(ts) {
+          if (!startT) startT = ts
+          const elapsed = ts - startT
+          const t = Math.min(elapsed / duration, 1)
+
+          ctx2d.clearRect(0, 0, w, h)
+
+          particles.forEach(p => {
+            // Move toward saturn center with acceleration
+            const dx = satTargetX - p.x
+            const dy = satTargetY - p.y
+            const gravity = 0.08 + t * 0.25
+            p.vx += dx * gravity * 0.012
+            p.vy += dy * gravity * 0.012
+            // Add some scatter at start
+            if (t < 0.3) {
+              p.vx += (Math.random() - 0.5) * 1.5
+              p.vy += (Math.random() - 0.5) * 1.5
+            }
+            p.x += p.vx
+            p.y += p.vy
+            p.life += 1
+            p.alpha = Math.max(0, 1 - t * 1.2)
+            p.size *= 0.99
+
+            if (p.alpha <= 0 || p.size < 0.3) return
+
+            ctx2d.save()
+            ctx2d.globalAlpha = p.alpha
+            ctx2d.fillStyle = p.color
+            ctx2d.shadowColor = p.color
+            ctx2d.shadowBlur = 6
+            ctx2d.beginPath()
+            ctx2d.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+            ctx2d.fill()
+            ctx2d.restore()
+          })
+
+          if (t < 1) {
+            requestAnimationFrame(animParticles)
+          } else {
+            ctx2d.clearRect(0, 0, w, h)
+            // Fade out overlay
+            overlay.style.transition = 'opacity 0.5s'
+            overlay.style.opacity = '0'
+            setTimeout(() => {
+              overlay.classList.remove('active')
+              overlay.style.transition = ''
+              overlay.style.opacity = ''
+              resolve()
+            }, 500)
+          }
+        }
+        requestAnimationFrame(animParticles)
+      }, 2600)
+    })
+  }
+
   uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault()
     if (!selectedFile) return
@@ -941,6 +1247,9 @@ import PageHead from '@/components/PageHead.astro'
     formData.append('file', selectedFile)
     formData.append('name', uploadName.value)
 
+    // Capture preview src before closing dialog
+    const previewSrc = uploadPreview.src
+
     try {
       const res = await fetch('/api/gallery/images', {
         method: 'POST',
@@ -948,6 +1257,8 @@ import PageHead from '@/components/PageHead.astro'
       })
       if (res.ok) {
         uploadDialog.close()
+        // Play success animation, then reload
+        await playUploadSuccessAnimation(previewSrc)
         await reloadPhotos()
       } else {
         alert('Gagal mengunggah foto.')

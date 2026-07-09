@@ -66,7 +66,7 @@ const latestPost = await getAllPosts().then((posts) => posts.at(0))
       </div>
     </div>
     <div class="aspect-square p-2 [grid-area:b]">
-      <div data-trigger class="bg-muted size-full border">
+      <a href="/gallery" data-trigger class="bg-muted block size-full border" title="Buka Gallery">
         <div
           class="size-full bg-[url('/static/bento/details-background.png')] bg-cover bg-center bg-no-repeat"
         >
@@ -81,20 +81,17 @@ const latestPost = await getAllPosts().then((posts) => posts.at(0))
             </p>
           </div>
         </div>
-      </div>
+      </a>
     </div>
     <div
       class="hidden p-2 [grid-area:c] sm:block sm:aspect-[1/2] lg:aspect-square xl:aspect-[1/2]"
     >
-      <a href="/gallery" class="group/gallery-card bg-muted relative block size-full border overflow-hidden" title="Buka Gallery">
+      <div class="bg-muted block size-full border overflow-hidden">
         <div
-          class="size-full bg-[url('/static/bento/image-1.png')] bg-cover bg-center bg-no-repeat transition-transform duration-500 group-hover/gallery-card:scale-105"
+          class="size-full bg-[url('/static/bento/image-1.png')] bg-cover bg-center bg-no-repeat"
         >
         </div>
-        <div class="absolute inset-0 bg-black/0 group-hover/gallery-card:bg-black/40 transition-colors duration-300 flex items-end p-3">
-          <span class="text-white/0 group-hover/gallery-card:text-white/90 text-xs font-mono transition-colors duration-300">Lihat Gallery →</span>
-        </div>
-      </a>
+      </div>
     </div>
     <div class="aspect-auto p-2 [grid-area:d] sm:aspect-square">
       <div class="bg-muted size-full border">
