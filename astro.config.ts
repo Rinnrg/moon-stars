@@ -23,6 +23,9 @@ export default defineConfig({
   site: 'https://enscribe.dev',
   adapter: vercel(),
   integrations: [expressiveCode(), mdx(), react(), sitemap(), icon(), svelte()],
+  security: {
+    checkOrigin: false,
+  },
   vite: {
     plugins: [tailwindcss()],
   },
