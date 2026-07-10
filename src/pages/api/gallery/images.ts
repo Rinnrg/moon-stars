@@ -1,7 +1,6 @@
 import type { APIRoute } from 'astro'
 import { prisma } from '@/lib/prisma'
 import { supabase, BUCKET } from '@/lib/supabase'
-import sharp from 'sharp'
 
 export const prerender = false
 
@@ -28,7 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
     const file = formData.get('file') as File | null
     const name = formData.get('name') as string | null
 
-    console.log('[gallery/upload] file:', file?.name, file?.size, 'bytes')
+    console.log('[gallery/upload] file:', file?.name, file?.size, 'bytes', file?.type)
     console.log('[gallery/upload] name:', name)
 
     if (!file || !name?.trim()) {
@@ -38,45 +37,42 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    // Convert to WebP via sharp
-    console.log('[gallery/upload] Converting to WebP...')
+    // Upload langsung ke Supabase tanpa konversi (sharp dihapus karena native module issue di Vercel)
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-    const webpBuffer = await sharp(buffer).webp({ quality: 85 }).toBuffer()
-    console.log('[gallery/upload] WebP size:', webpBuffer.length, 'bytes')
 
-    const filename = `${Date.now()}-${name.trim().replace(/\s+/g, '-')}.webp`
-    console.log('[gallery/upload] Uploading to Supabase bucket:', BUCKET, 'as', filename)
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+    const filename = `${Date.now()}-${name.trim().replace(/\s+/g, '-')}.${ext}`
+    const contentType = file.type || 'image/jpeg'
 
-    // Upload to Supabase Storage
+    console.log('[gallery/upload] Uploading:', filename, 'type:', contentType)
+
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
-      .upload(filename, webpBuffer, {
-        contentType: 'image/webp',
+      .upload(filename, buffer, {
+        contentType,
         upsert: false,
       })
 
     if (uploadError) {
-      console.error('[gallery/upload] Supabase upload error:', uploadError)
+      console.error('[gallery/upload] Supabase upload error:', JSON.stringify(uploadError))
       return new Response(
         JSON.stringify({ error: `Supabase error: ${uploadError.message}` }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('[gallery/upload] Supabase upload success')
+    console.log('[gallery/upload] Upload success')
 
-    // Get public URL
     const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(filename)
     const publicUrl = urlData.publicUrl
     console.log('[gallery/upload] Public URL:', publicUrl)
 
-    // Save to DB via Prisma
     console.log('[gallery/upload] Saving to DB...')
     const image = await prisma.galleryImage.create({
       data: { name: name.trim(), url: publicUrl },
     })
-    console.log('[gallery/upload] Saved to DB, id:', image.id)
+    console.log('[gallery/upload] Saved, id:', image.id)
 
     return new Response(JSON.stringify(image), {
       status: 201,
