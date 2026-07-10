@@ -35,8 +35,8 @@ const subpostCount = !isSubpost(entry.id) ? await getSubpostCount(entry.id) : 0
     {
       (entry.data.imageWithoutText || entry.data.imageWithText) && (
         <div class="max-w-3xs sm:shrink-0">
-          <Image
-            src={
+          {(() => {
+            const src =
               typeof entry.data.imageWithoutText === 'string'
                 ? entry.data.imageWithoutText
                 : entry.data.imageWithoutText
@@ -44,13 +44,24 @@ const subpostCount = !isSubpost(entry.id) ? await getSubpostCount(entry.id) : 0
                 : typeof entry.data.imageWithText === 'string'
                 ? entry.data.imageWithText
                 : entry.data.imageWithText!
-            }
-            alt={entry.data.title}
-            width={1200}
-            height={630}
-            class="object-cover"
-            inferSize={true}
-          />
+            return typeof src === 'string' ? (
+              <img
+                src={src}
+                alt={entry.data.title}
+                width={1200}
+                height={630}
+                class="object-cover"
+              />
+            ) : (
+              <Image
+                src={src}
+                alt={entry.data.title}
+                width={1200}
+                height={630}
+                class="object-cover"
+              />
+            )
+          })()}
         </div>
       )
     }

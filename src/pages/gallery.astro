@@ -1167,10 +1167,7 @@ import PageHead from '@/components/PageHead.astro'
         }
 
         // Saturn is roughly at center-left of viewport
-        // wrap center in viewport coords
         const wrapRect = wrap.getBoundingClientRect()
-        const wrapCX = wrapRect.left + wrapRect.width / 2
-        const wrapCY = wrapRect.top  + wrapRect.height / 2
         // canvas-local target = saturn direction (roughly center of screen for simplicity)
         const satTargetX = window.innerWidth  / 2 - wrapRect.left
         const satTargetY = window.innerHeight / 2 - wrapRect.top
