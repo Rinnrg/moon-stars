@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ request }) => {
       const arrayBuffer = await image.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
       
-      const { data, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('gallery')
         .upload(fileName, buffer, {
           contentType: image.type,

@@ -652,8 +652,6 @@ import PageHead from '@/components/PageHead.astro'
   function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2 }
   // easeInSine: gentle ramp up
   function easeInSine(t) { return 1 - Math.cos((t * Math.PI) / 2) }
-  // easeOutSine: gentle ramp down
-  function easeOutSine(t) { return Math.sin((t * Math.PI) / 2) }
 
   // ── Intro animation state ──
   // Phase 1: zoom IN  (0 → ZOOM_IN_DUR ms)   r: START_R → CLOSE_R  (easeInSine — gentle build)
@@ -789,7 +787,7 @@ import PageHead from '@/components/PageHead.astro'
     ]
     const thumbSize = 6
 
-    photosList.forEach((p, i) => {
+    photosList.forEach((_p, i) => {
       const tex = loadedTextures[i]
       if (!tex) return
       

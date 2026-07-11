@@ -10,7 +10,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "prettier": "prettier --write **/*.{ts,tsx,css,astro} --ignore-path .gitignore",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package && prisma generate"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

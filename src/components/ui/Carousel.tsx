@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { motion, useMotionValue, useTransform, type PanInfo } from 'motion/react'
-import { AudioLines } from 'lucide-react'
 
 export interface CarouselItemData {
   id: number
@@ -45,7 +44,6 @@ function CarouselItem({
   trackItemOffset,
   x,
   transition,
-  isPlaying,
 }: CarouselItemProps) {
   const range = [
     -(index + 1) * trackItemOffset,
