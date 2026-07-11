@@ -65,67 +65,6 @@ import PageHead from '@/components/PageHead.astro'
     text-transform: uppercase;
   }
 
-  /* Photo wall overlay - bottom */
-  #photos-bar {
-    pointer-events: all;
-    margin-top: auto;
-    padding: 1rem 1.5rem 1.5rem;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  #photos-strip {
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.2) transparent;
-  }
-  #photos-strip::-webkit-scrollbar { height: 4px; }
-  #photos-strip::-webkit-scrollbar-track { background: transparent; }
-  #photos-strip::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
-
-  .photo-thumb {
-    width: 64px;
-    height: 64px;
-    flex-shrink: 0;
-    border: 1px solid rgba(255,255,255,0.2);
-    overflow: hidden;
-    cursor: pointer;
-    transition: border-color 0.2s, transform 0.2s;
-  }
-  .photo-thumb:hover { border-color: rgba(255,255,255,0.6); transform: scale(1.05); }
-  .photo-thumb.active { border-color: #3b82f6; }
-  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(50%) sepia(20%); }
-
-  #photos-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  #photos-actions button, #photos-actions label {
-    font-family: monospace;
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.7);
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
-    padding: 0.35rem 0.85rem;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-  }
-  #photos-actions button:hover, #photos-actions label:hover {
-    background: rgba(255,255,255,0.16);
-    color: #fff;
-  }
-  #photo-count {
-    font-family: monospace;
-    font-size: 0.7rem;
-    color: rgba(255,255,255,0.4);
-    margin-left: auto;
-  }
 
   /* Featured viewer */
   #featured-viewer {
@@ -183,6 +122,16 @@ import PageHead from '@/components/PageHead.astro'
     transition: all 0.2s;
   }
   #featured-nav button:hover { color: #fff; background: rgba(255,255,255,0.16); }
+  #btn-delete-featured {
+    background: rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.4);
+    color: rgba(239,68,68,0.85);
+  }
+  #btn-delete-featured:hover {
+    background: rgba(239,68,68,0.35);
+    border-color: rgba(239,68,68,0.8);
+    color: #fca5a5;
+  }
 
   /* FAB Button */
   #fab-container {
@@ -462,16 +411,6 @@ import PageHead from '@/components/PageHead.astro'
     <span></span>
   </div>
 
-  <!-- Photo strip at bottom -->
-  <div id="photos-bar">
-    <div id="photos-strip">
-      <span id="empty-hint">Memuat galeri...</span>
-    </div>
-    <div id="photos-actions">
-      <span id="photo-count"></span>
-    </div>
-  </div>
-
   <div id="gallery-tooltip"></div>
 </div>
 
@@ -515,16 +454,7 @@ import PageHead from '@/components/PageHead.astro'
   </div>
 </div>
 
-  <!-- Photo strip at bottom -->
-  <div id="photos-bar">
-    <div id="photos-strip">
-      <span id="empty-hint">Memuat galeri...</span>
-    </div>
-    <div id="photos-actions">
-      <span id="photo-count"></span>
-    </div>
-  </div>
-</div>
+
 
 <!-- Featured photo viewer -->
 <div id="featured-viewer">
@@ -532,6 +462,7 @@ import PageHead from '@/components/PageHead.astro'
   <img id="featured-img" src="" alt="Featured photo" />
   <div id="featured-nav">
     <button id="prev-btn">← Sebelumnya</button>
+    <button id="btn-delete-featured">🗑 Hapus Foto</button>
     <button id="next-btn">Selanjutnya →</button>
   </div>
 </div>
@@ -951,38 +882,12 @@ import PageHead from '@/components/PageHead.astro'
   let photos = []      // [{id, name, url}]
   let featuredIdx = -1
 
-  function renderStrip() {
-    const strip = document.getElementById('photos-strip')
-    const hint  = document.getElementById('empty-hint')
-    const count = document.getElementById('photo-count')
-    strip.innerHTML = ''
-    if (!photos.length) {
-      if (hint) {
-        hint.textContent = 'Belum ada foto.'
-        strip.appendChild(hint)
-      }
-      if (count) count.textContent = ''
-      return
-    }
-    if (count) count.textContent = `${photos.length} foto`
-    photos.forEach((p, i) => {
-      const div = document.createElement('div')
-      div.className = 'photo-thumb' + (i === featuredIdx ? ' active' : '')
-      const img = document.createElement('img')
-      img.src = p.url; img.alt = p.name
-      div.appendChild(img)
-      div.addEventListener('click', () => openFeatured(i))
-      strip.appendChild(div)
-    })
-  }
-
   function openFeatured(idx) {
     featuredIdx = idx
     const viewer = document.getElementById('featured-viewer')
     const img    = document.getElementById('featured-img')
     img.src = photos[idx].url
     viewer.classList.add('open')
-    renderStrip()
   }
 
   document.getElementById('close-featured').addEventListener('click', () => {
@@ -995,6 +900,31 @@ import PageHead from '@/components/PageHead.astro'
   document.getElementById('next-btn').addEventListener('click', () => {
     if (!photos.length) return
     openFeatured((featuredIdx + 1) % photos.length)
+  })
+
+  document.getElementById('btn-delete-featured').addEventListener('click', async () => {
+    if (featuredIdx === -1 || !photos[featuredIdx]) return
+    const photo = photos[featuredIdx]
+    if (!confirm(`Hapus foto "${photo.name}"?`)) return
+
+    const btn = document.getElementById('btn-delete-featured')
+    btn.textContent = 'Menghapus...'
+    btn.disabled = true
+
+    try {
+      const res = await fetch(`/api/gallery/${photo.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        document.getElementById('featured-viewer').classList.remove('open')
+        await reloadPhotos()
+      } else {
+        alert('Gagal menghapus foto.')
+      }
+    } catch {
+      alert('Terjadi kesalahan.')
+    } finally {
+      btn.textContent = '🗑 Hapus Foto'
+      btn.disabled = false
+    }
   })
 
   async function reloadPhotos() {
