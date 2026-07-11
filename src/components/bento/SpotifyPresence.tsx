@@ -248,7 +248,7 @@ const SpotifyPresence = () => {
         onClick={() => setShowAddDialog(true)}
         title="Tambah lagu"
         aria-label="Tambah lagu"
-        className="bg-border/50 text-primary ring-ring absolute bottom-0 right-14 m-3 rounded-full p-3 transition-[box-shadow] duration-300 hover:ring-2 cursor-pointer z-20"
+        className="bg-border/50 text-primary ring-ring absolute bottom-14 end-0 m-3 rounded-full p-3 transition-[box-shadow] duration-300 hover:ring-2 cursor-pointer z-20"
       >
         <Plus size={16} />
       </button>
