@@ -17,3 +17,12 @@ model GalleryImage {
   url       String   // Supabase Storage public URL (webp)
   createdAt DateTime @default(now())
 }
+
+model Song {
+  id          String   @id @default(cuid())
+  title       String
+  artist      String
+  description String   @default("")
+  imageUrl    String   // Supabase Storage public URL (webp)
+  createdAt   DateTime @default(now())
+}
